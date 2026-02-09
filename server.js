@@ -1,33 +1,47 @@
 const express = require("express");
-const mercadopago = require("mercadopago");
 const cors = require("cors");
-require("dotenv").config();
+const { MercadoPagoConfig, Preference } = require("mercadopago");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-mercadopago.configure({
-  access_token: process.env.MP_ACCESS_TOKEN
+const client = new MercadoPagoConfig({
+  accessToken: process.env.MP_ACCESS_TOKEN
 });
 
-app.post("/criar-pagamento", async (req, res) => {
+app.get("/", (req, res) => {
+  res.send("Servidor funcionando 🚀");
+});
+
+app.post("/create-payment", async (req, res) => {
   try {
-    const preference = await mercadopago.preferences.create({
-      items: req.body.items
+    const preference = new Preference(client);
+
+    const result = await preference.create({
+      body: {
+        items: [
+          {
+            title: "Compra Mercadinho",
+            quantity: 1,
+            unit_price: req.body.amount
+          }
+        ]
+      }
     });
 
     res.json({
-      id: preference.body.id,
-      init_point: preference.body.init_point
+      init_point: result.init_point
     });
 
   } catch (error) {
-    console.log(error);
-    res.status(500).send("Erro ao criar pagamento");
+    console.error(error);
+    res.status(500).json({ error: "Erro ao criar pagamento" });
   }
 });
 
-app.listen(3000, () => {
-  console.log("Servidor rodando na porta 3000");
+const PORT = process.env.PORT || 10000;
+
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
